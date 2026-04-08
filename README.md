@@ -2,6 +2,9 @@
 
 Backend REST da **DryStorm** — loja de roupas esportivas **dryfit**. Pensado para integrar com a landing page estática [**DryStormLandpage**](https://github.com/brunomartinsoliveira/DryStormLandpage).
 
+<img width="1376" height="670" alt="Generated_image" src="https://github.com/user-attachments/assets/cca80035-afe7-466f-8304-c4cb5d380557" />
+
+
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=flat&logo=java)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-6DB33F?style=flat&logo=spring)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?style=flat&logo=postgresql)
@@ -9,13 +12,13 @@ Backend REST da **DryStorm** — loja de roupas esportivas **dryfit**. Pensado p
 
 ---
 
-## O que esta API faz
+## O que é isso?
 
-Em uma frase: **expõe o catálogo de produtos dryfit, permite que clientes agendem visita/prova na loja e envia e-mails transacionais**, enquanto o time usa rotas protegidas por **JWT** para administrar agenda e catálogo.
+Drystorm é um projeto full stack com backend em Java, contemplando API REST, autenticação de usuários (login) e fluxo de pagamentos. No frontend, foi desenvolvida uma landing page responsiva com HTML5 e CSS3, priorizando usabilidade e performance. O projeto reforça minha experiência em integração entre camadas, boas práticas de desenvolvimento e construção de aplicações web com foco em qualidade e escalabilidade. Em uma frase: **expõe o catálogo de produtos dryfit, permite que clientes agendem visita/prova na loja e envia e-mails transacionais**, enquanto o time usa rotas protegidas por **JWT** para administrar agenda e catálogo.
 
 | Área | O que oferece |
 |------|----------------|
-| **Catálogo** | Lista itens ativos, detalhe por ID e visão **agrupada por categoria** (Camisetas, Regatas, Shorts e bermudas, Acessórios, Kits, Outros). |
+| **Catálogo** | Lista itens ativos, detalhe por ID e visão **agrupada por categoria** (Camisetas, sexo e cores). |
 | **Agendamento público** | Criação de reserva com validação de dia útil, horário de funcionamento e **conflito de horários**; consulta de **slots livres** por data e produto. |
 | **Confirmação** | Link com token no e-mail → cliente confirma → status passa de `PENDING` para `CONFIRMED`. |
 | **E-mail** | Templates HTML (confirmação, lembrete D-1, cancelamento), envio **assíncrono**. |
@@ -25,16 +28,16 @@ Em uma frase: **expõe o catálogo de produtos dryfit, permite que clientes agen
 
 ---
 
-## Repositórios relacionados
+## Repositórios relacionados:
 
 | Projeto | Descrição |
 |---------|-----------|
 | [**DryStormLandpage**](https://github.com/brunomartinsoliveira/DryStormLandpage) | Landing HTML/CSS (GitHub Pages). Configure `FRONTEND_URL` na API para essa URL nos links dos e-mails. |
-| **drystorm-api** (este) | Backend e regras de negócio. |
+| **drystorm-api** | Backend e regras de negócio. |
 
 ---
 
-## Arquitetura (pacotes)
+## Arquitetura do projeto: 
 
 ```
 src/main/java/com/drystorm/api/
@@ -50,15 +53,15 @@ src/main/java/com/drystorm/api/
 
 ---
 
-## Como rodar
+## Como rodar?
 
-### Pré-requisitos
+### Pré-requisitos:
 
 - Java 21+
 - Docker e Docker Compose (PostgreSQL)
 - Maven (`mvn`)
 
-### Configuração
+### Configuração:
 
 ```bash
 git clone https://github.com/brunomartinsoliveira/drystorm-api.git
@@ -67,7 +70,7 @@ cp .env.example .env
 # Ajuste DB_*, MAIL_*, JWT_SECRET, FRONTEND_URL no .env
 ```
 
-### Banco e aplicação
+### Banco e aplicação:
 
 ```bash
 docker compose up postgres -d
@@ -76,7 +79,7 @@ mvn spring-boot:run
 
 Ou suba API + banco com `docker compose up -d` (conforme seu `docker-compose.yml`).
 
-### URLs úteis
+### URLs úteis:
 
 | Serviço | URL |
 |---------|-----|
@@ -86,7 +89,7 @@ Ou suba API + banco com `docker compose up -d` (conforme seu `docker-compose.yml
 
 ---
 
-## Autenticação
+## Autenticação:
 
 Rotas administrativas exigem **Bearer JWT** obtido em:
 
@@ -96,9 +99,9 @@ Usuário seed (troque a senha em produção): `admin@drystorm.com.br` / `Admin@1
 
 ---
 
-## Endpoints (visão geral)
+## Endpoints:
 
-### Públicos
+### Públicos:
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
@@ -109,7 +112,7 @@ Usuário seed (troque a senha em produção): `admin@drystorm.com.br` / `Admin@1
 | POST | `/api/v1/appointments` | Novo agendamento |
 | GET | `/api/v1/appointments/confirm/{token}` | Confirmação via link do e-mail |
 
-### Protegidos (JWT)
+### Protegidos:
 
 Agendamentos: busca por id, por data, por período, por e-mail do cliente; atualização de status; reagendamento.
 
@@ -119,7 +122,7 @@ Documentação interativa completa no **Swagger**.
 
 ---
 
-## Fluxo de agendamento
+## Fluxo de agendamento:
 
 ```
 Landing → GET /services/grouped → GET /available-slots
@@ -130,14 +133,14 @@ Landing → GET /services/grouped → GET /available-slots
 
 ---
 
-## Status dos agendamentos
+## Status dos agendamentos:
 
 `PENDING` → `CONFIRMED` → `IN_PROGRESS` → `COMPLETED`  
 Cancelamento: `CANCELLED`. Falta: `NO_SHOW`. Transições inválidas retornam erro de negócio.
 
 ---
 
-## Integração com a landing page (exemplo)
+## Integração com a landing page:
 
 ```javascript
 const API = 'https://sua-api.com';
@@ -163,7 +166,7 @@ await fetch(`${API}/api/v1/appointments`, {
 
 ---
 
-## E-mails (Gmail)
+## E-mails:
 
 1. Ative 2FA na conta Google.  
 2. Crie uma **senha de app** e use em `MAIL_PASSWORD` no `.env`.  
@@ -171,7 +174,7 @@ await fetch(`${API}/api/v1/appointments`, {
 
 ---
 
-## Migrations Flyway
+## Rota Migratória:
 
 | Versão | Conteúdo |
 |--------|----------|
@@ -183,7 +186,7 @@ await fetch(`${API}/api/v1/appointments`, {
 
 ---
 
-## Variáveis de ambiente (principais)
+## Variáveis de ambiente:
 
 | Variável | Descrição |
 |----------|-----------|
@@ -192,11 +195,9 @@ await fetch(`${API}/api/v1/appointments`, {
 | `JWT_SECRET` | Segredo JWT (mín. 32 caracteres) |
 | `FRONTEND_URL` | URL pública da landing (links nos e-mails) |
 
-Detalhes no `.env.example`.
-
 ---
 
-## Testes
+## Testes:
 
 ```bash
 mvn test
@@ -205,7 +206,7 @@ mvn test jacoco:report   # cobertura em target/site/jacoco/index.html
 
 ---
 
-## Licença
+## Licença:
 
 MIT.
 
