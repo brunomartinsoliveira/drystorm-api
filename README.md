@@ -212,4 +212,6 @@ MIT.
 
 ---
 
+https://www.linkedin.com/in/brunooliveiradev/
+
 **Autor:** Bruno Martins de Oliveira — projeto **DryStorm** (roupas dryfit).
