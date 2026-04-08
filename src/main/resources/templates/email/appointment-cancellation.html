@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Cancelamento - DryStorm</title>
+  <style>
+    body { margin:0; padding:0; background:#f4f4f5; font-family:'Segoe UI',Arial,sans-serif; }
+    .wrapper { max-width:600px; margin:32px auto; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+    .header { background:linear-gradient(135deg,#1a1a2e,#0f3460); padding:40px 32px; text-align:center; }
+    .header h1 { color:#e94560; font-size:28px; margin:0; letter-spacing:2px; }
+    .badge { display:inline-block; background:#dc2626; color:#fff; border-radius:20px; padding:6px 16px; font-size:13px; font-weight:600; margin-top:16px; }
+    .body { padding:40px 32px; }
+    .card { background:#fef2f2; border:1.5px solid #fecaca; border-radius:10px; padding:24px; margin-bottom:24px; }
+    .info-row { display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid #fecaca; }
+    .info-row:last-child { border-bottom:none; }
+    .info-label { color:#64748b; font-size:14px; }
+    .info-value { color:#1a1a2e; font-size:14px; font-weight:600; }
+    .footer { background:#f8fafc; border-top:1px solid #e2e8f0; padding:24px 32px; text-align:center; }
+    .footer p { color:#94a3b8; font-size:12px; margin:4px 0; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1>⚡ DRYSTORM</h1>
+    <p style="color:#a0a8c0; font-size:13px; margin:4px 0 0;">Roupas esportivas dryfit</p>
+    <div class="badge">❌ Agendamento Cancelado</div>
+  </div>
+  <div class="body">
+    <p style="font-size:20px; color:#1a1a2e; font-weight:600;">
+      Olá, <span th:text="${clientName}">Cliente</span>.
+    </p>
+    <p style="color:#64748b; font-size:15px;">
+      Informamos que seu agendamento foi cancelado. Lamentamos qualquer inconveniente.
+    </p>
+    <div class="card">
+      <div class="info-row">
+        <span class="info-label">Serviço</span>
+        <span class="info-value" th:text="${serviceName}">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Data</span>
+        <span class="info-value" th:text="${date}">—</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">Horário</span>
+        <span class="info-value" th:text="${time}">—</span>
+      </div>
+    </div>
+    <p style="color:#64748b; font-size:14px;">
+      Para fazer um novo agendamento, acesse nosso site:
+      <a th:href="${frontendUrl}" style="color:#e94560;" th:text="${frontendUrl}">drystorm.com.br</a>
+    </p>
+  </div>
+  <div class="footer">
+    <p>📍 DryStorm — loja dryfit</p>
+    <p>Protocolo #<span th:text="${appointmentId}">0</span></p>
+  </div>
+</div>
+</body>
+</html>

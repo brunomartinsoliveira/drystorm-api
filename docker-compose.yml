@@ -1,0 +1,72 @@
+version: '3.9'
+
+services:
+
+  # ─── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: drystorm-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: drystorm
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d drystorm"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── API Spring Boot ─────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: drystorm-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: drystorm
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      MAIL_HOST: smtp.gmail.com
+      MAIL_PORT: 587
+      MAIL_USERNAME: ${MAIL_USERNAME:-seu-email@gmail.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-sua-senha-app}
+      MAIL_FROM: ${MAIL_FROM:-noreply@drystorm.com.br}
+      JWT_SECRET: ${JWT_SECRET:-drystorm-dev-secret-change-in-production}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ─── PgAdmin (opcional, para visualizar o banco) ────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: drystorm-pgadmin
+    restart: unless-stopped
+    profiles: ["tools"]
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@drystorm.com.br
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+    driver: local
