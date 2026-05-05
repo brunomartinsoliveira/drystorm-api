@@ -10,7 +10,6 @@ import com.drystorm.api.exception.BusinessException;
 import com.drystorm.api.exception.ResourceNotFoundException;
 import com.drystorm.api.repository.AppointmentRepository;
 import com.drystorm.api.repository.ServiceRepository;
-import com.drystorm.api.util.TokenGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +29,6 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final ServiceRepository serviceRepository;
     private final EmailService emailService;
-    private final TokenGenerator tokenGenerator;
 
     @Value("${app.business.opening-hour:8}")
     private int openingHour;
@@ -41,23 +39,23 @@ public class AppointmentService {
     @Value("${app.business.slot-interval-minutes:30}")
     private int slotInterval;
 
-    // ─── Criação de agendamento ───────────────────────────────────────────────
+    // Cria um novo agendamento
     @Transactional
     public AppointmentResponse create(AppointmentRequest req) {
-        // 1. Validar serviço
+        // 1. Verifica se o serviço existe e está ativo
         Service service = serviceRepository.findByIdAndActiveTrue(req.getServiceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Serviço", req.getServiceId()));
 
-        // 2. Validar que não é domingo
+        // 2. Valida que não é domingo
         validateBusinessDay(req.getAppointmentDate());
 
-        // 3. Calcular horário de término
+        // 3. Calcula o horário de término com base na duração do serviço
         LocalTime endTime = req.getAppointmentTime().plusMinutes(service.getDurationMinutes());
 
-        // 4. Validar horário de funcionamento
+        // 4. Valida se o horário está dentro do funcionamento da loja
         validateBusinessHours(req.getAppointmentTime(), endTime);
 
-        // 5. Verificar conflito de horários
+        // 5. Verifica se já existe agendamento nesse horário
         boolean conflict = appointmentRepository.hasConflict(
                 req.getAppointmentDate(),
                 req.getAppointmentTime(),
@@ -65,11 +63,10 @@ public class AppointmentService {
                 null);
 
         if (conflict) {
-            throw new BusinessException(
-                    "Horário indisponível. Já existe um agendamento nesse período.");
+            throw new BusinessException("Horário indisponível. Já existe um agendamento nesse período.");
         }
 
-        // 6. Criar agendamento
+        // 6. Salva o agendamento já como CONFIRMED
         Appointment appointment = Appointment.builder()
                 .clientName(req.getClientName())
                 .clientEmail(req.getClientEmail())
@@ -80,13 +77,12 @@ public class AppointmentService {
                 .appointmentTime(req.getAppointmentTime())
                 .endTime(endTime)
                 .notes(req.getNotes())
-                .confirmationToken(tokenGenerator.generate())
-                .status(Appointment.AppointmentStatus.PENDING)
+                .status(Appointment.AppointmentStatus.CONFIRMED)
                 .build();
 
         Appointment saved = appointmentRepository.save(appointment);
 
-        // 7. Enviar e-mail de confirmação (assíncrono)
+        // 7. Envia e-mail de confirmação para o cliente
         emailService.sendAppointmentConfirmation(saved);
 
         log.info("Agendamento criado: id={}, cliente={}, data={} {}",
@@ -96,7 +92,7 @@ public class AppointmentService {
         return AppointmentResponse.from(saved);
     }
 
-    // ─── Horários disponíveis ─────────────────────────────────────────────────
+    // Retorna os horários disponíveis para uma data e serviço
     public AvailableSlotsResponse getAvailableSlots(LocalDate date, Long serviceId) {
         validateBusinessDay(date);
 
@@ -107,6 +103,7 @@ public class AppointmentService {
         LocalTime cursor = LocalTime.of(openingHour, 0);
         LocalTime closing = LocalTime.of(closingHour, 0);
 
+        // Percorre os horários do dia em intervalos fixos e verifica disponibilidade
         while (cursor.plusMinutes(service.getDurationMinutes()).compareTo(closing) <= 0) {
             LocalTime slotEnd = cursor.plusMinutes(service.getDurationMinutes());
             boolean available = !appointmentRepository.hasConflict(date, cursor, slotEnd, null);
@@ -128,44 +125,58 @@ public class AppointmentService {
                 .build();
     }
 
-    // ─── Busca ────────────────────────────────────────────────────────────────
+    // Busca agendamento por ID
     public AppointmentResponse findById(Long id) {
         return appointmentRepository.findById(id)
                 .map(AppointmentResponse::from)
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento", id));
     }
 
+    // Lista agendamentos de uma data específica
     public List<AppointmentResponse> findByDate(LocalDate date) {
         return appointmentRepository.findByAppointmentDateOrderByAppointmentTime(date)
                 .stream().map(AppointmentResponse::from).toList();
     }
 
+    // Lista agendamentos de um período com filtro opcional de status
     public List<AppointmentResponse> findByPeriod(LocalDate start, LocalDate end,
                                                     Appointment.AppointmentStatus status) {
-        if (start.isAfter(end)) throw new BusinessException("Data inicial deve ser antes da data final");
+        if (start.isAfter(end)) {
+            throw new BusinessException("Data inicial deve ser antes da data final.");
+        }
         return appointmentRepository.findByPeriodAndStatus(start, end, status)
                 .stream().map(AppointmentResponse::from).toList();
     }
 
+    // Lista todos os agendamentos de um cliente pelo e-mail
     public List<AppointmentResponse> findByClientEmail(String email) {
         return appointmentRepository
                 .findByClientEmailOrderByAppointmentDateDescAppointmentTimeDesc(email)
                 .stream().map(AppointmentResponse::from).toList();
     }
 
-    // ─── Atualização de status ────────────────────────────────────────────────
+    // Atualiza o status de um agendamento
     @Transactional
     public AppointmentResponse updateStatus(Long id, AppointmentStatusRequest req) {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento", id));
 
-        validateStatusTransition(appointment.getStatus(), req.getStatus());
+        // Não permite alterar agendamentos que já foram finalizados
+        if (appointment.getStatus() == Appointment.AppointmentStatus.COMPLETED
+                || appointment.getStatus() == Appointment.AppointmentStatus.CANCELLED) {
+            throw new BusinessException(
+                    "Não é possível alterar um agendamento com status: "
+                    + appointment.getStatus());
+        }
 
         appointment.setStatus(req.getStatus());
-        if (req.getNotes() != null) appointment.setNotes(req.getNotes());
+        if (req.getNotes() != null) {
+            appointment.setNotes(req.getNotes());
+        }
 
         Appointment saved = appointmentRepository.save(appointment);
 
+        // Envia e-mail de cancelamento se o status for CANCELLED
         if (req.getStatus() == Appointment.AppointmentStatus.CANCELLED) {
             emailService.sendAppointmentCancellation(saved);
         }
@@ -174,34 +185,18 @@ public class AppointmentService {
         return AppointmentResponse.from(saved);
     }
 
-    // ─── Confirmação via token ────────────────────────────────────────────────
-    @Transactional
-    public AppointmentResponse confirmByToken(String token) {
-        Appointment appointment = appointmentRepository.findByConfirmationToken(token)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Agendamento não encontrado ou token inválido"));
-
-        if (appointment.getStatus() != Appointment.AppointmentStatus.PENDING) {
-            throw new BusinessException("Este agendamento já foi processado.");
-        }
-
-        appointment.setStatus(Appointment.AppointmentStatus.CONFIRMED);
-        appointment.setConfirmationToken(null);
-
-        log.info("Agendamento {} confirmado pelo cliente", appointment.getId());
-        return AppointmentResponse.from(appointmentRepository.save(appointment));
-    }
-
-    // ─── Reagendamento ────────────────────────────────────────────────────────
+    // Reagenda um agendamento para nova data e horário
     @Transactional
     public AppointmentResponse reschedule(Long id, AppointmentRequest req) {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Agendamento", id));
 
+        // Não permite reagendar agendamentos finalizados ou cancelados
         if (appointment.getStatus() == Appointment.AppointmentStatus.COMPLETED
                 || appointment.getStatus() == Appointment.AppointmentStatus.CANCELLED) {
-            throw new BusinessException("Não é possível reagendar um agendamento " +
-                    appointment.getStatus().name().toLowerCase());
+            throw new BusinessException(
+                    "Não é possível reagendar um agendamento com status: "
+                    + appointment.getStatus());
         }
 
         Service service = serviceRepository.findByIdAndActiveTrue(req.getServiceId())
@@ -221,49 +216,38 @@ public class AppointmentService {
         appointment.setAppointmentDate(req.getAppointmentDate());
         appointment.setAppointmentTime(req.getAppointmentTime());
         appointment.setEndTime(endTime);
-        appointment.setStatus(Appointment.AppointmentStatus.PENDING);
-        if (req.getNotes() != null) appointment.setNotes(req.getNotes());
+        if (req.getNotes() != null) {
+            appointment.setNotes(req.getNotes());
+        }
 
         Appointment saved = appointmentRepository.save(appointment);
         emailService.sendAppointmentConfirmation(saved);
 
-        log.info("Agendamento {} reagendado para {} {}", id,
-                saved.getAppointmentDate(), saved.getAppointmentTime());
+        log.info("Agendamento {} reagendado para {} {}",
+                id, saved.getAppointmentDate(), saved.getAppointmentTime());
 
         return AppointmentResponse.from(saved);
     }
 
-    // ─── Validações ───────────────────────────────────────────────────────────
+    // Valida se a data não é domingo
     private void validateBusinessDay(LocalDate date) {
         if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
             throw new BusinessException("Não realizamos atendimentos aos domingos.");
         }
     }
 
+    // Valida se o horário está dentro do funcionamento da loja
     private void validateBusinessHours(LocalTime start, LocalTime end) {
         LocalTime opening = LocalTime.of(openingHour, 0);
         LocalTime closing = LocalTime.of(closingHour, 0);
 
         if (start.isBefore(opening)) {
-            throw new BusinessException("Horário de início antes da abertura (" + opening + ").");
+            throw new BusinessException(
+                    "Horário de início antes da abertura (" + opening + ").");
         }
         if (end.isAfter(closing)) {
             throw new BusinessException(
                     "O serviço ultrapassaria o horário de fechamento (" + closing + ").");
-        }
-    }
-
-    private void validateStatusTransition(Appointment.AppointmentStatus current,
-                                          Appointment.AppointmentStatus next) {
-        boolean invalid = switch (current) {
-            case COMPLETED, CANCELLED, NO_SHOW -> true;
-            case CONFIRMED -> next == Appointment.AppointmentStatus.PENDING;
-            default -> false;
-        };
-
-        if (invalid) {
-            throw new BusinessException(
-                    "Transição de status inválida: " + current + " → " + next);
         }
     }
 }

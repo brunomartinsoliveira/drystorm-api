@@ -29,6 +29,15 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(ex.getMessage()));
     }
 
+    @ExceptionHandler(PaymentGatewayUpstreamException.class)
+    public ResponseEntity<ApiResponse<Void>> handlePaymentGatewayUpstream(PaymentGatewayUpstreamException ex) {
+        HttpStatus status = HttpStatus.resolve(ex.getStatus().value());
+        if (status == null) {
+            status = HttpStatus.BAD_GATEWAY;
+        }
+        return ResponseEntity.status(status).body(ApiResponse.error(ex.getMessage()));
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadCredentials(BadCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -39,18 +38,12 @@ public class EmailService {
     private static final DateTimeFormatter TIME_FMT =
             DateTimeFormatter.ofPattern("HH:mm");
 
-    // ─── E-mail de confirmação para o cliente ─────────────────────────────────
-    @Async
+    // Envia e-mail de confirmação do agendamento para o cliente
     public void sendAppointmentConfirmation(Appointment appointment) {
         try {
             Context ctx = buildContext(appointment);
-            ctx.setVariable("confirmUrl",
-                    frontendUrl + "/confirmar/" + appointment.getConfirmationToken());
-
             String html = templateEngine.process("email/appointment-confirmation", ctx);
-            send(appointment.getClientEmail(),
-                    "✅ Agendamento Recebido - DryStorm", html);
-
+            send(appointment.getClientEmail(), "✅ Agendamento Confirmado - DryStorm", html);
             log.info("E-mail de confirmação enviado para: {}", appointment.getClientEmail());
         } catch (Exception e) {
             log.error("Falha ao enviar e-mail de confirmação para {}: {}",
@@ -58,39 +51,20 @@ public class EmailService {
         }
     }
 
-    // ─── E-mail de lembrete (D-1) ─────────────────────────────────────────────
-    @Async
-    public void sendAppointmentReminder(Appointment appointment) {
-        try {
-            Context ctx = buildContext(appointment);
-            String html = templateEngine.process("email/appointment-reminder", ctx);
-            send(appointment.getClientEmail(),
-                    "⏰ Lembrete do seu Agendamento - DryStorm", html);
-
-            log.info("E-mail de lembrete enviado para: {}", appointment.getClientEmail());
-        } catch (Exception e) {
-            log.error("Falha ao enviar lembrete para {}: {}",
-                    appointment.getClientEmail(), e.getMessage());
-        }
-    }
-
-    // ─── E-mail de cancelamento ───────────────────────────────────────────────
-    @Async
+    // Envia e-mail de cancelamento do agendamento para o cliente
     public void sendAppointmentCancellation(Appointment appointment) {
         try {
             Context ctx = buildContext(appointment);
             String html = templateEngine.process("email/appointment-cancellation", ctx);
-            send(appointment.getClientEmail(),
-                    "❌ Agendamento Cancelado - DryStorm", html);
-
+            send(appointment.getClientEmail(), "❌ Agendamento Cancelado - DryStorm", html);
             log.info("E-mail de cancelamento enviado para: {}", appointment.getClientEmail());
         } catch (Exception e) {
-            log.error("Falha ao enviar cancelamento para {}: {}",
+            log.error("Falha ao enviar e-mail de cancelamento para {}: {}",
                     appointment.getClientEmail(), e.getMessage());
         }
     }
 
-    // ─── Helpers ──────────────────────────────────────────────────────────────
+    // Monta o contexto com os dados do agendamento para o template Thymeleaf
     private Context buildContext(Appointment appointment) {
         Context ctx = new Context(new Locale("pt", "BR"));
         ctx.setVariable("clientName", appointment.getClientName());
@@ -105,7 +79,9 @@ public class EmailService {
         return ctx;
     }
 
-    private void send(String to, String subject, String html) throws MessagingException, UnsupportedEncodingException {
+    // Envia o e-mail em formato HTML
+    private void send(String to, String subject, String html)
+            throws MessagingException, UnsupportedEncodingException {
         MimeMessage msg = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(msg, true, "UTF-8");
         helper.setFrom(from, fromName);

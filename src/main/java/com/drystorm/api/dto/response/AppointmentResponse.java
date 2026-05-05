@@ -56,12 +56,9 @@ public class AppointmentResponse {
 
     private static String getStatusLabel(Appointment.AppointmentStatus status) {
         return switch (status) {
-            case PENDING -> "Aguardando Confirmação";
             case CONFIRMED -> "Confirmado";
-            case IN_PROGRESS -> "Em Andamento";
             case COMPLETED -> "Concluído";
             case CANCELLED -> "Cancelado";
-            case NO_SHOW -> "Não Compareceu";
         };
     }
 }

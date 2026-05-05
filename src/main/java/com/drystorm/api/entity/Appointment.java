@@ -50,13 +50,10 @@ public class Appointment {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private AppointmentStatus status = AppointmentStatus.PENDING;
+    private AppointmentStatus status = AppointmentStatus.CONFIRMED;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
-
-    @Column(name = "confirmation_token", length = 64)
-    private String confirmationToken;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -67,11 +64,8 @@ public class Appointment {
     private LocalDateTime updatedAt;
 
     public enum AppointmentStatus {
-        PENDING,    // Aguardando confirmação
-        CONFIRMED,  // Confirmado
-        IN_PROGRESS,// Em andamento
-        COMPLETED,  // Concluído
-        CANCELLED,  // Cancelado
-        NO_SHOW     // Cliente não compareceu
+        CONFIRMED,  // Agendamento confirmado
+        COMPLETED,  // Atendimento concluído
+        CANCELLED   // Agendamento cancelado
     }
 }

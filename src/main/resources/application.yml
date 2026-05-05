@@ -73,6 +73,11 @@ app:
     from: ${MAIL_FROM:noreply@drystorm.com.br}
     from-name: DryStorm — Roupas dryfit
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  payment-gateway:
+    base-url: ${PAYMENT_GATEWAY_BASE_URL:http://localhost:8081}
+    merchant-id: ${PAYMENT_MERCHANT_ID:drystorm-001}
+    enabled: ${PAYMENT_GATEWAY_ENABLED:true}
+    api-key: ${PAYMENT_GATEWAY_API_KEY:}
   business:
     opening-hour: 8
     closing-hour: 18
