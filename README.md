@@ -32,12 +32,8 @@ Admin: `admin@drystorm.com.br` / `Admin@123`
 
 ---
 
-**Autor:** Bruno Martins —
-
 ## Licença
 
 MIT.
-
----
 
 **Autor:** Bruno Martins de Oliveira — projeto **DryStorm** (roupas dryfit).
