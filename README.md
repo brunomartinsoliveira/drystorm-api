@@ -31,9 +31,12 @@ Swagger: http://localhost:8080/swagger-ui.html
 Admin: `admin@drystorm.com.br` / `Admin@123`
 
 ---
+## 👨‍💻 Autor
 
-## Licença
+Bruno Martins de Oliveira
+[LinkedIn](https://www.linkedin.com/in/brunooliveiradev/)
 
-MIT.
+## 📄 Licença
 
-**Autor:** Bruno Martins de Oliveira — projeto **DryStorm** (roupas dryfit).
+MIT
+
